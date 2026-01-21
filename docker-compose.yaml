@@ -1,0 +1,54 @@
+# nginx proxy address - http://172.17.0.1:3002
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "1"
+
+services:
+  wiki-js:
+    image: wiki-js/wiki-js:latest
+    container_name: wiki-js-app
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - wiki-js
+    ports:
+      - "3002:3002"
+    environment:
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ./rootfs/data/wiki-js:/data
+      - ./rootfs/config/wiki-js:/config
+    depends_on:
+      - wiki-js-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  wiki-js-db:
+    image: postgres:16-alpine
+    container_name: wiki-js-db
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - wiki-js
+    environment:
+      TZ: ${TZ:-America/New_York}
+      POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-wiki-js}
+      POSTGRES_USER: ${DB_USER_NAME:-wiki-js}
+      POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
+    volumes:
+      - ./rootfs/db/postgres/wiki-js:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${{POSTGRES_USER}} -d $${{POSTGRES_DB}}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  wiki-js:
+    external: false
