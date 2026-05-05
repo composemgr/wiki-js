@@ -50,9 +50,9 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/data/wiki-js` - Data storage
-- `./rootfs/config/wiki-js` - Data storage
-- `./rootfs/data/db/postgres/wiki-js` - Data storage
+- `./volumes/data/wiki-js` - Data storage
+- `./volumes/config/wiki-js` - Data storage
+- `./volumes/data/db/postgres/wiki-js` - Data storage
 
 ## 🔐 Security
 
