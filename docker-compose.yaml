@@ -19,8 +19,8 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
     volumes:
-      - ./rootfs/data/wiki-js:/data
-      - ./rootfs/config/wiki-js:/config
+      - ./volumes/data/wiki-js:/data
+      - ./volumes/config/wiki-js:/config
     depends_on:
       - wiki-js-db
     healthcheck:
@@ -42,7 +42,7 @@ services:
       POSTGRES_USER: ${DB_USER_NAME:-wiki-js}
       POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
     volumes:
-      - ./rootfs/data/db/postgres/wiki-js:/var/lib/postgresql/data
+      - ./volumes/data/db/postgres/wiki-js:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${{POSTGRES_USER}} -d $${{POSTGRES_DB}}"]
       interval: 30s
