@@ -17,10 +17,14 @@ services:
     logging: *default-logging
     networks:
       - wiki-js
+      - proxy
+      - cloudflare
     ports:
       - "172.17.0.1:3002:3000"
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: wiki-js-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       DB_TYPE: postgres
       DB_HOST: wiki-js-db
       DB_PORT: 5432
@@ -35,6 +39,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://wiki-js-app:3000'
+      - 'cloudflare.hostname=wiki-js.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.wiki-js-app.entrypoints=http'
+      - 'traefik.http.routers.wiki-js-app-secure.tls=true'
+      - 'traefik.http.routers.wiki-js-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.wiki-js-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.wiki-js-app.middlewares=wiki-js-app-https-redirect'
+      - 'traefik.http.routers.wiki-js-app-secure.entrypoints=https'
+      - 'traefik.http.routers.wiki-js-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.wiki-js-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.wiki-js-app-secure.service=wiki-js-app'
+      - 'traefik.http.services.wiki-js-app.loadbalancer.server.port=3000'
 
   wiki-js-db:
     image: postgres:latest
@@ -46,6 +66,7 @@ services:
       - wiki-js
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: wiki-js-db
       POSTGRES_DB: ${DB_CREATE_DATABASE_NAME:-wiki-js}
       POSTGRES_USER: ${DB_USER_NAME:-wiki-js}
       POSTGRES_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
@@ -61,3 +82,7 @@ networks:
   wiki-js:
     name: wiki-js
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
