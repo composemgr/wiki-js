@@ -1,5 +1,6 @@
 # nginx proxy address - http://172.17.0.1:3002
 
+name: wiki-js
 x-logging: &default-logging
   driver: json-file
   options:
@@ -8,31 +9,38 @@ x-logging: &default-logging
 
 services:
   wiki-js:
-    image: wiki-js/wiki-js:latest
+    image: requarks/wiki:latest
+    pull_policy: always
     container_name: wiki-js-app
-    restart: unless-stopped
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
     logging: *default-logging
     networks:
       - wiki-js
     ports:
-      - "3002:3002"
+      - "172.17.0.1:3002:3000"
     environment:
       TZ: ${TZ:-America/New_York}
-    volumes:
-      - ./volumes/data/wiki-js:/data
-      - ./volumes/config/wiki-js:/config
+      DB_TYPE: postgres
+      DB_HOST: wiki-js-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_CREATE_DATABASE_NAME:-wiki-js}
+      DB_USER: ${DB_USER_NAME:-wiki-js}
+      DB_PASS: ${DB_USER_PASS:-changeme_db_password}
     depends_on:
-      - wiki-js-db
+      wiki-js-db:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   wiki-js-db:
-    image: postgres:16-alpine
+    image: postgres:latest
+    pull_policy: always
     container_name: wiki-js-db
-    restart: unless-stopped
+    restart: always
     logging: *default-logging
     networks:
       - wiki-js
@@ -44,11 +52,12 @@ services:
     volumes:
       - ./volumes/data/db/postgres/wiki-js:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${{POSTGRES_USER}} -d $${{POSTGRES_DB}}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 3
 
 networks:
   wiki-js:
+    name: wiki-js
     external: false
